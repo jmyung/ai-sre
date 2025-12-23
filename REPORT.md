@@ -333,6 +333,9 @@ $ curl -X POST "http://localhost:8000/api/v1/monitor/test/fill-memory?size_mb=10
 ## 6. 주요 기능 스크린샷 설명
 
 ### 6.1 실시간 모니터링 화면
+
+![alt text](image.png)
+
 - Redis 연결 설정 (Host, Port, Password)
 - 모니터링 주기 설정 (5~60초)
 - 실시간 메트릭 대시보드
@@ -346,6 +349,9 @@ $ curl -X POST "http://localhost:8000/api/v1/monitor/test/fill-memory?size_mb=10
 - 에러 유발 테스트 패널
 
 ### 6.2 장애 분석 화면
+
+![alt text](image-1.png)
+
 - 에러 로그 입력
 - 메트릭 정보 입력
 - AI 분석 결과
