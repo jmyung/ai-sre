@@ -1,0 +1,97 @@
+[
+  {
+    "id": "kb-persist-001",
+    "category": "persistence",
+    "title": "Redis RDB 스냅샷 저장 실패 문제 해결",
+    "symptoms": [
+      "MISCONF Redis is configured to save RDB snapshots 에러",
+      "rdb_last_bgsave_status가 err 상태",
+      "Can't save in background: fork: Cannot allocate memory 에러",
+      "RDB 파일이 생성되지 않거나 오래됨"
+    ],
+    "root_causes": [
+      "메모리 부족으로 fork 실패",
+      "디스크 공간 부족",
+      "RDB 저장 디렉토리 권한 문제",
+      "vm.overcommit_memory 설정이 0",
+      "THP(Transparent Huge Pages) 활성화로 인한 지연"
+    ],
+    "diagnosis_steps": [
+      "INFO persistence 명령으로 마지막 저장 상태 확인",
+      "rdb_last_bgsave_status, rdb_last_bgsave_time_sec 확인",
+      "df -h로 디스크 공간 확인",
+      "free -m로 가용 메모리 확인",
+      "sysctl vm.overcommit_memory 확인",
+      "/var/log/messages에서 OOM killer 로그 확인"
+    ],
+    "solutions": [
+      "vm.overcommit_memory=1 설정 (echo 1 > /proc/sys/vm/overcommit_memory)",
+      "시스템 메모리 증설 또는 maxmemory 감소",
+      "디스크 공간 확보",
+      "RDB 저장 디렉토리 권한 수정",
+      "THP 비활성화",
+      "stop-writes-on-bgsave-error no 설정 (임시 조치)"
+    ],
+    "prevention": [
+      "vm.overcommit_memory=1 영구 설정 (/etc/sysctl.conf)",
+      "THP 비활성화 (/sys/kernel/mm/transparent_hugepage/enabled)",
+      "디스크 공간 모니터링",
+      "RDB 저장 상태 모니터링 알림"
+    ],
+    "related_metrics": [
+      "rdb_last_bgsave_status",
+      "rdb_last_bgsave_time_sec",
+      "rdb_changes_since_last_save",
+      "rdb_bgsave_in_progress"
+    ],
+    "severity": "high",
+    "tags": ["persistence", "RDB", "snapshot", "fork", "bgsave"]
+  },
+  {
+    "id": "kb-persist-002",
+    "category": "persistence",
+    "title": "Redis AOF Rewrite 실패 및 파일 비대화 문제",
+    "symptoms": [
+      "aof_last_bgrewrite_status가 err 상태",
+      "AOF 파일 크기가 계속 증가",
+      "디스크 공간 부족 경고",
+      "AOF rewrite 시 성능 저하",
+      "AOF 파일 손상으로 복구 실패"
+    ],
+    "root_causes": [
+      "메모리 부족으로 rewrite fork 실패",
+      "디스크 I/O 병목",
+      "auto-aof-rewrite 임계값 설정 문제",
+      "AOF 파일 손상"
+    ],
+    "diagnosis_steps": [
+      "INFO persistence 명령으로 AOF 상태 확인",
+      "aof_current_size, aof_base_size 비교",
+      "aof_last_bgrewrite_status 확인",
+      "AOF 파일 크기 및 디스크 공간 확인",
+      "redis-check-aof로 AOF 파일 무결성 검사"
+    ],
+    "solutions": [
+      "BGREWRITEAOF 명령으로 수동 rewrite 실행",
+      "auto-aof-rewrite-percentage, auto-aof-rewrite-min-size 조정",
+      "메모리 확보 또는 vm.overcommit_memory=1 설정",
+      "손상된 AOF 복구: redis-check-aof --fix <file>",
+      "AOF 비활성화 후 RDB로 전환 고려"
+    ],
+    "prevention": [
+      "적절한 auto-aof-rewrite 임계값 설정",
+      "AOF 파일 크기 모니터링",
+      "디스크 I/O 성능 모니터링",
+      "정기적인 AOF 파일 백업"
+    ],
+    "related_metrics": [
+      "aof_enabled",
+      "aof_current_size",
+      "aof_base_size",
+      "aof_last_bgrewrite_status",
+      "aof_rewrite_in_progress"
+    ],
+    "severity": "high",
+    "tags": ["persistence", "AOF", "rewrite", "disk", "recovery"]
+  }
+]

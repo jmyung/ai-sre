@@ -1,0 +1,95 @@
+[
+  {
+    "id": "kb-cluster-001",
+    "category": "cluster",
+    "title": "Redis Cluster 노드 장애 대응",
+    "symptoms": [
+      "cluster_state가 fail 상태",
+      "CLUSTERDOWN The cluster is down 에러 발생",
+      "특정 슬롯 범위에 대한 요청 실패",
+      "cluster_slots_fail 값이 0보다 큼",
+      "노드 간 통신 실패 (CLUSTER NODES에서 fail 표시)"
+    ],
+    "root_causes": [
+      "마스터 노드 다운으로 슬롯 미할당 상태",
+      "마스터와 모든 복제본이 동시에 다운",
+      "네트워크 파티션으로 인한 노드 분리",
+      "cluster-require-full-coverage yes 설정 상태에서 일부 슬롯 미할당",
+      "노드 메모리 부족 또는 프로세스 크래시"
+    ],
+    "diagnosis_steps": [
+      "CLUSTER INFO 명령으로 클러스터 상태 확인",
+      "CLUSTER NODES 명령으로 각 노드 상태 확인",
+      "CLUSTER SLOTS 명령으로 슬롯 할당 상태 확인",
+      "장애 노드의 프로세스 상태 확인 (ps, systemctl)",
+      "장애 노드의 로그 확인",
+      "노드 간 네트워크 연결 상태 확인 (cluster-announce-port)"
+    ],
+    "solutions": [
+      "장애 노드 프로세스 재시작",
+      "복제본이 있는 경우 자동 페일오버 대기 또는 수동 페일오버 (CLUSTER FAILOVER)",
+      "cluster-require-full-coverage no 설정으로 부분 장애 허용",
+      "새 노드 추가 후 슬롯 재할당 (CLUSTER ADDSLOTS)",
+      "네트워크 문제 해결 후 CLUSTER MEET으로 재연결",
+      "CLUSTER FORGET으로 죽은 노드 제거 후 재구성"
+    ],
+    "prevention": [
+      "각 마스터에 최소 1개 이상의 복제본 구성",
+      "cluster-node-timeout 적절히 설정 (기본 15000ms)",
+      "노드를 다른 가용 영역에 분산 배치",
+      "클러스터 상태 모니터링 및 알림 설정",
+      "정기적인 백업 및 복구 테스트"
+    ],
+    "related_metrics": [
+      "cluster_state",
+      "cluster_slots_ok",
+      "cluster_slots_fail",
+      "cluster_known_nodes",
+      "cluster_size"
+    ],
+    "severity": "critical",
+    "tags": ["cluster", "failover", "slot", "node failure", "partition"]
+  },
+  {
+    "id": "kb-cluster-002",
+    "category": "cluster",
+    "title": "Redis Cluster MOVED/ASK 리다이렉션 과다 문제",
+    "symptoms": [
+      "클라이언트에서 MOVED 에러 빈번 발생",
+      "ASK 에러 후 재시도 증가",
+      "응답 지연 증가",
+      "클라이언트 CPU 사용률 증가"
+    ],
+    "root_causes": [
+      "클라이언트가 슬롯 매핑 정보를 캐시하지 않음",
+      "클러스터 리샤딩 진행 중",
+      "Smart client가 아닌 단순 클라이언트 사용",
+      "슬롯 마이그레이션 중 일시적 현상"
+    ],
+    "diagnosis_steps": [
+      "CLUSTER SLOTS 명령으로 현재 슬롯 분포 확인",
+      "클러스터 리샤딩 진행 여부 확인",
+      "클라이언트 라이브러리 종류 및 설정 확인",
+      "MOVED/ASK 에러 발생 빈도 로깅"
+    ],
+    "solutions": [
+      "Smart client 라이브러리 사용 (redis-py-cluster, jedis-cluster 등)",
+      "클라이언트의 슬롯 캐시 갱신 주기 조정",
+      "리샤딩 완료 대기",
+      "프록시 사용 (redis-cluster-proxy, twemproxy)"
+    ],
+    "prevention": [
+      "검증된 클러스터 클라이언트 라이브러리 사용",
+      "리샤딩은 트래픽 낮은 시간대에 수행",
+      "충분한 슬롯 캐시 TTL 설정"
+    ],
+    "related_metrics": [
+      "cluster_state",
+      "cluster_slots_assigned",
+      "keyspace_hits",
+      "keyspace_misses"
+    ],
+    "severity": "medium",
+    "tags": ["cluster", "MOVED", "ASK", "redirection", "resharding"]
+  }
+]

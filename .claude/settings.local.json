@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(python scripts/init_db.py:*)",
+      "Bash(python scripts/load_knowledge.py:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(docker-compose:*)",
+      "Bash(redis-cli ping:*)",
+      "Bash(python:*)"
+    ]
+  }
+}

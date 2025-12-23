@@ -1,0 +1,100 @@
+[
+  {
+    "id": "kb-mem-001",
+    "category": "memory",
+    "title": "Redis OOM (Out of Memory) 장애 대응",
+    "symptoms": [
+      "OOM command not allowed when used memory > 'maxmemory' 에러 발생",
+      "클라이언트 요청에 대해 -OOM 응답 반환",
+      "메모리 사용량이 maxmemory 설정값에 도달",
+      "새로운 키 쓰기 실패",
+      "애플리케이션에서 Redis 쓰기 에러 발생"
+    ],
+    "root_causes": [
+      "maxmemory 설정이 실제 트래픽 대비 부족",
+      "eviction policy가 적절하지 않음",
+      "메모리 누수가 있는 키 패턴 존재",
+      "대용량 키(Big Key)가 존재하여 메모리 급격히 증가",
+      "TTL이 설정되지 않은 키가 계속 증가",
+      "복제본 출력 버퍼(replica output buffer)가 과도하게 증가"
+    ],
+    "diagnosis_steps": [
+      "INFO memory 명령으로 현재 메모리 사용량 확인",
+      "MEMORY DOCTOR 명령으로 메모리 이슈 진단",
+      "MEMORY STATS 명령으로 상세 메모리 통계 확인",
+      "redis-cli --bigkeys 로 대용량 키 탐지",
+      "SCAN 명령으로 TTL 없는 키 탐지",
+      "CONFIG GET maxmemory-policy 로 eviction 정책 확인"
+    ],
+    "solutions": [
+      "maxmemory 값 증가 (CONFIG SET maxmemory <bytes>)",
+      "적절한 eviction policy 설정 (volatile-lru, allkeys-lru 등)",
+      "불필요한 키 삭제 (UNLINK 명령 사용 권장)",
+      "대용량 키 분할 또는 삭제",
+      "TTL 설정이 누락된 키에 EXPIRE 적용",
+      "client-output-buffer-limit 조정"
+    ],
+    "prevention": [
+      "메모리 사용량 모니터링 알림 설정 (80% 경고, 90% 위험)",
+      "정기적인 대용량 키 점검 스크립트 실행",
+      "애플리케이션에서 모든 키에 적절한 TTL 설정 강제",
+      "maxmemory-policy를 서비스 특성에 맞게 설정",
+      "Redis Cluster 사용 시 샤딩으로 부하 분산"
+    ],
+    "related_metrics": [
+      "used_memory",
+      "used_memory_peak",
+      "used_memory_rss",
+      "maxmemory",
+      "evicted_keys",
+      "mem_fragmentation_ratio"
+    ],
+    "severity": "critical",
+    "tags": ["memory", "OOM", "maxmemory", "eviction", "bigkey"]
+  },
+  {
+    "id": "kb-mem-002",
+    "category": "memory",
+    "title": "Redis 메모리 단편화(Fragmentation) 문제 해결",
+    "symptoms": [
+      "mem_fragmentation_ratio가 1.5 이상으로 높음",
+      "used_memory_rss가 used_memory보다 현저히 높음",
+      "시스템 메모리는 부족하나 Redis used_memory는 낮음",
+      "메모리 해제 후에도 시스템에 반환되지 않음"
+    ],
+    "root_causes": [
+      "빈번한 키 생성/삭제로 인한 메모리 단편화",
+      "가변 길이 데이터의 잦은 업데이트",
+      "jemalloc 메모리 할당기 특성",
+      "대용량 키 삭제 후 메모리 미반환"
+    ],
+    "diagnosis_steps": [
+      "INFO memory에서 mem_fragmentation_ratio 확인",
+      "used_memory와 used_memory_rss 비교",
+      "allocator_fragmentation_ratio 확인",
+      "MEMORY DOCTOR 실행"
+    ],
+    "solutions": [
+      "MEMORY PURGE 명령으로 메모리 정리 시도 (jemalloc)",
+      "activedefrag yes 설정으로 자동 조각 모음 활성화",
+      "active-defrag-threshold-lower/upper 튜닝",
+      "심각한 경우 Redis 재시작으로 메모리 정리",
+      "RDB 백업 후 복원으로 메모리 재구성"
+    ],
+    "prevention": [
+      "activedefrag 기능 활성화",
+      "키 크기를 일관되게 유지하는 데이터 모델 설계",
+      "대량 삭제 시 UNLINK 사용",
+      "정기적인 메모리 단편화 모니터링"
+    ],
+    "related_metrics": [
+      "mem_fragmentation_ratio",
+      "used_memory",
+      "used_memory_rss",
+      "allocator_fragmentation_ratio",
+      "active_defrag_running"
+    ],
+    "severity": "medium",
+    "tags": ["memory", "fragmentation", "defrag", "jemalloc"]
+  }
+]

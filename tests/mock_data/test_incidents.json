@@ -1,0 +1,229 @@
+{
+  "scenarios": [
+    {
+      "id": "SC-001",
+      "name": "OOM (Out of Memory) 장애",
+      "description": "메모리 초과로 인한 Redis 쓰기 실패",
+      "severity": "critical",
+      "incident": {
+        "timestamp": "2024-01-15T14:30:00Z",
+        "error_logs": [
+          "OOM command not allowed when used memory > 'maxmemory'",
+          "Can't save in background: fork: Cannot allocate memory",
+          "Client id=12345 addr=10.0.1.50:45678 cmd=SET failed: OOM"
+        ],
+        "metrics": {
+          "used_memory": 8589934592,
+          "used_memory_peak": 8589934592,
+          "used_memory_rss": 9663676416,
+          "maxmemory": 8589934592,
+          "connected_clients": 150,
+          "blocked_clients": 0,
+          "rejected_connections": 0,
+          "instantaneous_ops_per_sec": 15000,
+          "keyspace_hits": 980000,
+          "keyspace_misses": 20000,
+          "evicted_keys": 0
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "standalone",
+        "description": "프로덕션 Redis 서버에서 갑자기 쓰기 요청이 모두 실패하기 시작함. SET 명령 실행 시 OOM 에러 발생."
+      },
+      "expected_category": "memory",
+      "expected_severity": "critical"
+    },
+    {
+      "id": "SC-002",
+      "name": "Max Clients 초과",
+      "description": "최대 클라이언트 연결 수 초과로 신규 연결 거부",
+      "severity": "high",
+      "incident": {
+        "timestamp": "2024-01-15T09:15:00Z",
+        "error_logs": [
+          "ERR max number of clients reached",
+          "Error accepting client connection: max number of clients reached"
+        ],
+        "metrics": {
+          "used_memory": 2147483648,
+          "maxmemory": 4294967296,
+          "connected_clients": 10000,
+          "blocked_clients": 50,
+          "rejected_connections": 1523,
+          "instantaneous_ops_per_sec": 5000
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "standalone",
+        "description": "아침 트래픽 피크 시간에 애플리케이션에서 Redis 연결 실패 에러 다수 발생. 신규 연결이 모두 거부됨."
+      },
+      "expected_category": "connection",
+      "expected_severity": "high"
+    },
+    {
+      "id": "SC-003",
+      "name": "복제 지연 (Replication Lag)",
+      "description": "마스터-복제본 간 복제 지연 발생",
+      "severity": "high",
+      "incident": {
+        "timestamp": "2024-01-15T16:45:00Z",
+        "error_logs": [
+          "MASTER <-> REPLICA sync started",
+          "Partial resync not accepted: Replication ID mismatch",
+          "Full resync from master: runid changed"
+        ],
+        "metrics": {
+          "used_memory": 4294967296,
+          "maxmemory": 8589934592,
+          "connected_clients": 200,
+          "master_link_status": "down",
+          "connected_slaves": 0,
+          "instantaneous_ops_per_sec": 20000
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "sentinel",
+        "description": "복제본에서 마스터와의 연결이 끊어지고 Full Resync가 반복적으로 발생. 읽기 분산이 제대로 되지 않음."
+      },
+      "expected_category": "replication",
+      "expected_severity": "high"
+    },
+    {
+      "id": "SC-004",
+      "name": "클러스터 노드 장애",
+      "description": "Redis Cluster 노드 장애로 일부 슬롯 접근 불가",
+      "severity": "critical",
+      "incident": {
+        "timestamp": "2024-01-15T11:20:00Z",
+        "error_logs": [
+          "CLUSTERDOWN The cluster is down",
+          "Cluster state changed: fail",
+          "Node 192.168.1.10:7001 marked as failing"
+        ],
+        "metrics": {
+          "used_memory": 2147483648,
+          "maxmemory": 4294967296,
+          "connected_clients": 500,
+          "cluster_state": "fail",
+          "cluster_slots_ok": 14746,
+          "cluster_slots_fail": 1638,
+          "instantaneous_ops_per_sec": 0
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "cluster",
+        "description": "Redis Cluster 6노드 중 1개 마스터 노드가 갑자기 다운되어 해당 슬롯 범위의 모든 요청 실패. 클러스터 상태가 fail로 변경됨."
+      },
+      "expected_category": "cluster",
+      "expected_severity": "critical"
+    },
+    {
+      "id": "SC-005",
+      "name": "느린 쿼리 (Slow Query)",
+      "description": "대용량 키 연산으로 인한 성능 저하",
+      "severity": "medium",
+      "incident": {
+        "timestamp": "2024-01-15T13:00:00Z",
+        "error_logs": [
+          "Slow query detected: KEYS * - duration: 15000ms",
+          "Slow query detected: SMEMBERS large_set - duration: 8000ms",
+          "Client timeout"
+        ],
+        "metrics": {
+          "used_memory": 6442450944,
+          "maxmemory": 8589934592,
+          "connected_clients": 300,
+          "blocked_clients": 45,
+          "instantaneous_ops_per_sec": 500,
+          "keyspace_hits": 100000,
+          "keyspace_misses": 5000
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "standalone",
+        "description": "배치 작업 중 KEYS * 명령 실행 후 전체 Redis 응답 지연 발생. 모든 클라이언트에서 타임아웃 에러."
+      },
+      "expected_category": "performance",
+      "expected_severity": "medium"
+    },
+    {
+      "id": "SC-006",
+      "name": "AOF Rewrite 실패",
+      "description": "AOF 재작성 실패로 디스크 공간 부족",
+      "severity": "high",
+      "incident": {
+        "timestamp": "2024-01-15T03:30:00Z",
+        "error_logs": [
+          "Background AOF rewrite terminated with error",
+          "Can't rewrite append only file in background: fork: Cannot allocate memory",
+          "AOF file size is growing above threshold"
+        ],
+        "metrics": {
+          "used_memory": 7516192768,
+          "used_memory_peak": 7516192768,
+          "maxmemory": 8589934592,
+          "connected_clients": 100,
+          "instantaneous_ops_per_sec": 8000,
+          "aof_current_size": 21474836480,
+          "aof_base_size": 5368709120,
+          "aof_last_bgrewrite_status": "err"
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "standalone",
+        "description": "새벽 자동 AOF rewrite 실패. AOF 파일이 20GB 이상으로 비대해지고 디스크 공간 경고 발생."
+      },
+      "expected_category": "persistence",
+      "expected_severity": "high"
+    },
+    {
+      "id": "SC-007",
+      "name": "RDB 스냅샷 저장 실패",
+      "description": "RDB 백업 실패로 데이터 손실 위험",
+      "severity": "high",
+      "incident": {
+        "timestamp": "2024-01-15T02:00:00Z",
+        "error_logs": [
+          "MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk",
+          "Background saving error",
+          "Can't save in background: fork: Cannot allocate memory"
+        ],
+        "metrics": {
+          "used_memory": 8053063680,
+          "maxmemory": 8589934592,
+          "connected_clients": 50,
+          "instantaneous_ops_per_sec": 3000,
+          "rdb_last_bgsave_status": "err",
+          "rdb_changes_since_last_save": 1500000
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "standalone",
+        "description": "정기 RDB 백업 실패. 쓰기 요청에 대해 MISCONF 에러 반환. 150만 건 이상의 변경사항이 백업되지 않음."
+      },
+      "expected_category": "persistence",
+      "expected_severity": "high"
+    },
+    {
+      "id": "SC-008",
+      "name": "연결 타임아웃",
+      "description": "간헐적 연결 타임아웃으로 서비스 불안정",
+      "severity": "medium",
+      "incident": {
+        "timestamp": "2024-01-15T10:30:00Z",
+        "error_logs": [
+          "Client connection timeout",
+          "Read operation timed out",
+          "Reconnecting to Redis..."
+        ],
+        "metrics": {
+          "used_memory": 3221225472,
+          "maxmemory": 8589934592,
+          "connected_clients": 400,
+          "blocked_clients": 20,
+          "instantaneous_ops_per_sec": 25000,
+          "keyspace_hits": 2000000,
+          "keyspace_misses": 50000
+        },
+        "redis_version": "7.0.11",
+        "deployment_type": "standalone",
+        "description": "프로덕션 환경에서 간헐적으로 Redis 연결 타임아웃 발생. 특히 트래픽이 높은 시간대에 빈번히 발생."
+      },
+      "expected_category": "connection",
+      "expected_severity": "medium"
+    }
+  ]
+}
